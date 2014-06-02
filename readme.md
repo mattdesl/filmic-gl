@@ -3,25 +3,20 @@
 Porting some shaders from Martins Upitis and François Tarlier to WebGL. This is only a demo/prototype, and not really reusable at the moment.
 
 See the blog post for details:
+https://medium.com/@mattdesl/filmic-effects-for-webgl-9dab4bc899dc
 
+## building
 
-## running
-
-You can run the demo with beefy, like so:
+You need browserify to build.
 
 ```
 #install dependencies
 npm install
 bower install
 
-#install beefy and browserify
-npm install beefy browserify -g
+#install the browserify tool
+npm install browserify -g
 
-#run beefy
-beefy main.js --cwd demos
+npm run build
 ```
-
-## building
-
-```npm run build```
 
