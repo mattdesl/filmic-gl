@@ -3,6 +3,158 @@
 ;__browserify_shim_require__=require;(function browserifyShim(module, exports, require, define, browserify_shim__define__module__export__) {
 /**
  * @author mrdoob / http://mrdoob.com/
+ */
+
+var Stats = function () {
+
+	var startTime = Date.now(), prevTime = startTime;
+	var ms = 0, msMin = Infinity, msMax = 0;
+	var fps = 0, fpsMin = Infinity, fpsMax = 0;
+	var frames = 0, mode = 0;
+
+	var container = document.createElement( 'div' );
+	container.id = 'stats';
+	container.addEventListener( 'mousedown', function ( event ) { event.preventDefault(); setMode( ++ mode % 2 ) }, false );
+	container.style.cssText = 'width:80px;opacity:0.9;cursor:pointer';
+
+	var fpsDiv = document.createElement( 'div' );
+	fpsDiv.id = 'fps';
+	fpsDiv.style.cssText = 'padding:0 0 3px 3px;text-align:left;background-color:#002';
+	container.appendChild( fpsDiv );
+
+	var fpsText = document.createElement( 'div' );
+	fpsText.id = 'fpsText';
+	fpsText.style.cssText = 'color:#0ff;font-family:Helvetica,Arial,sans-serif;font-size:9px;font-weight:bold;line-height:15px';
+	fpsText.innerHTML = 'FPS';
+	fpsDiv.appendChild( fpsText );
+
+	var fpsGraph = document.createElement( 'div' );
+	fpsGraph.id = 'fpsGraph';
+	fpsGraph.style.cssText = 'position:relative;width:74px;height:30px;background-color:#0ff';
+	fpsDiv.appendChild( fpsGraph );
+
+	while ( fpsGraph.children.length < 74 ) {
+
+		var bar = document.createElement( 'span' );
+		bar.style.cssText = 'width:1px;height:30px;float:left;background-color:#113';
+		fpsGraph.appendChild( bar );
+
+	}
+
+	var msDiv = document.createElement( 'div' );
+	msDiv.id = 'ms';
+	msDiv.style.cssText = 'padding:0 0 3px 3px;text-align:left;background-color:#020;display:none';
+	container.appendChild( msDiv );
+
+	var msText = document.createElement( 'div' );
+	msText.id = 'msText';
+	msText.style.cssText = 'color:#0f0;font-family:Helvetica,Arial,sans-serif;font-size:9px;font-weight:bold;line-height:15px';
+	msText.innerHTML = 'MS';
+	msDiv.appendChild( msText );
+
+	var msGraph = document.createElement( 'div' );
+	msGraph.id = 'msGraph';
+	msGraph.style.cssText = 'position:relative;width:74px;height:30px;background-color:#0f0';
+	msDiv.appendChild( msGraph );
+
+	while ( msGraph.children.length < 74 ) {
+
+		var bar = document.createElement( 'span' );
+		bar.style.cssText = 'width:1px;height:30px;float:left;background-color:#131';
+		msGraph.appendChild( bar );
+
+	}
+
+	var setMode = function ( value ) {
+
+		mode = value;
+
+		switch ( mode ) {
+
+			case 0:
+				fpsDiv.style.display = 'block';
+				msDiv.style.display = 'none';
+				break;
+			case 1:
+				fpsDiv.style.display = 'none';
+				msDiv.style.display = 'block';
+				break;
+		}
+
+	}
+
+	var updateGraph = function ( dom, value ) {
+
+		var child = dom.appendChild( dom.firstChild );
+		child.style.height = value + 'px';
+
+	}
+
+	return {
+
+		REVISION: 11,
+
+		domElement: container,
+
+		setMode: setMode,
+
+		begin: function () {
+
+			startTime = Date.now();
+
+		},
+
+		end: function () {
+
+			var time = Date.now();
+
+			ms = time - startTime;
+			msMin = Math.min( msMin, ms );
+			msMax = Math.max( msMax, ms );
+
+			msText.textContent = ms + ' MS (' + msMin + '-' + msMax + ')';
+			updateGraph( msGraph, Math.min( 30, 30 - ( ms / 200 ) * 30 ) );
+
+			frames ++;
+
+			if ( time > prevTime + 1000 ) {
+
+				fps = Math.round( ( frames * 1000 ) / ( time - prevTime ) );
+				fpsMin = Math.min( fpsMin, fps );
+				fpsMax = Math.max( fpsMax, fps );
+
+				fpsText.textContent = fps + ' FPS (' + fpsMin + '-' + fpsMax + ')';
+				updateGraph( fpsGraph, Math.min( 30, 30 - ( fps / 100 ) * 30 ) );
+
+				prevTime = time;
+				frames = 0;
+
+			}
+
+			return time;
+
+		},
+
+		update: function () {
+
+			startTime = this.end();
+
+		}
+
+	}
+
+};
+
+; browserify_shim__define__module__export__(typeof Stats != "undefined" ? Stats : window.Stats);
+
+}).call(global, undefined, undefined, undefined, undefined, function defineExport(ex) { module.exports = ex; });
+
+}).call(this,typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
+},{}],2:[function(require,module,exports){
+(function (global){
+;__browserify_shim_require__=require;(function browserifyShim(module, exports, require, define, browserify_shim__define__module__export__) {
+/**
+ * @author mrdoob / http://mrdoob.com/
  * @author Larry Battle / http://bateru.com/news
  * @author bhouston / http://exocortex.com
  */
@@ -38498,9 +38650,11 @@ THREE.ShaderFlares = {
 }).call(global, undefined, undefined, undefined, undefined, function defineExport(ex) { module.exports = ex; });
 
 }).call(this,typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],2:[function(require,module,exports){
+},{}],3:[function(require,module,exports){
 var domready = require('domready');
 var THREE = require('three');
+var Stats = require('stats');
+
 require('raf.js');
 
 var lensShader = require('./shaders/lens');
@@ -38721,6 +38875,15 @@ domready(function() {
     renderer.gammaInput = true;
     renderer.gammaOutput = true;
 
+    var stats = new Stats();
+    stats.setMode(0); // 0: fps, 1: ms
+
+    // Align top-left
+    stats.domElement.style.position = 'absolute';
+    stats.domElement.style.left = (10+width-80)+'px';
+    stats.domElement.style.top = '10px';
+    document.body.appendChild(stats.domElement);
+
     var post = setupPostProcessing(renderer, width, height);
 
     var useFXAA = true,
@@ -38741,10 +38904,10 @@ domready(function() {
         } else if (chr === 'f') {
             useFXAA = !useFXAA;
         } 
-        // else if (chr === 'n') {
-        //     //bit flip 0 to 1 and vice versa
-        //     post.postMaterial.uniforms.colored.value ^= 1; 
-        // }
+        else if (chr === 'n') {
+            //bit flip 0 to 1 and vice versa
+            post.postMaterial.uniforms.colored.value ^= 1; 
+        }
 
         updateLabels();
     });
@@ -38759,6 +38922,7 @@ domready(function() {
 
     function render() {
         requestAnimationFrame(render);
+        stats.begin();
 
         var time = clock.getElapsedTime();
 
@@ -38789,23 +38953,24 @@ domready(function() {
             renderer.render(scene, camera);
         }
             
+        stats.end();
     }
 });
-},{"./shaders/fxaa":3,"./shaders/lens":4,"domready":5,"raf.js":6,"three":1}],3:[function(require,module,exports){
+},{"./shaders/fxaa":4,"./shaders/lens":5,"domready":6,"raf.js":7,"stats":1,"three":2}],4:[function(require,module,exports){
 
 
 module.exports = {
-    vertexShader: "varying vec2 vUv;\nvarying vec2 vCanvasUv;\nuniform vec2 resolution;\n\nvoid main() {\n  vUv = uv;  \n  vCanvasUv = uv;\n  gl_Position = projectionMatrix *\n                modelViewMatrix *\n                vec4(position,1.0);\n}\n",
-    fragmentShader: "\nvarying vec2 vUv;\nvarying vec2 vCanvasUv;\nuniform vec2 resolution;\nuniform sampler2D texture;\n\n#ifndef FXAA_GLSL_INCLUDED\n#define FXAA_GLSL_INCLUDED\n\n/* Basic FXAA implementation based on the code on geeks3d.com with the\n   modification that the texture2DLod stuff was removed since it's\n   unsupported by WebGL. */\n\n#define FXAA_REDUCE_MIN   (1.0/ 128.0)\n#define FXAA_REDUCE_MUL   (1.0 / 8.0)\n#define FXAA_SPAN_MAX     8.0\n\nvec4 applyFXAA(vec2 fragCoord, sampler2D tex)\n{\n    vec4 color;\n    vec2 inverseVP = vec2(1.0 / resolution.x, 1.0 / resolution.y);\n    vec3 rgbNW = texture2D(tex, (fragCoord + vec2(-1.0, -1.0)) * inverseVP).xyz;\n    vec3 rgbNE = texture2D(tex, (fragCoord + vec2(1.0, -1.0)) * inverseVP).xyz;\n    vec3 rgbSW = texture2D(tex, (fragCoord + vec2(-1.0, 1.0)) * inverseVP).xyz;\n    vec3 rgbSE = texture2D(tex, (fragCoord + vec2(1.0, 1.0)) * inverseVP).xyz;\n    vec3 rgbM  = texture2D(tex, fragCoord  * inverseVP).xyz;\n    vec3 luma = vec3(0.299, 0.587, 0.114);\n    float lumaNW = dot(rgbNW, luma);\n    float lumaNE = dot(rgbNE, luma);\n    float lumaSW = dot(rgbSW, luma);\n    float lumaSE = dot(rgbSE, luma);\n    float lumaM  = dot(rgbM,  luma);\n    float lumaMin = min(lumaM, min(min(lumaNW, lumaNE), min(lumaSW, lumaSE)));\n    float lumaMax = max(lumaM, max(max(lumaNW, lumaNE), max(lumaSW, lumaSE)));\n    \n    vec2 dir;\n    dir.x = -((lumaNW + lumaNE) - (lumaSW + lumaSE));\n    dir.y =  ((lumaNW + lumaSW) - (lumaNE + lumaSE));\n    \n    float dirReduce = max((lumaNW + lumaNE + lumaSW + lumaSE) *\n                          (0.25 * FXAA_REDUCE_MUL), FXAA_REDUCE_MIN);\n    \n    float rcpDirMin = 1.0 / (min(abs(dir.x), abs(dir.y)) + dirReduce);\n    dir = min(vec2(FXAA_SPAN_MAX, FXAA_SPAN_MAX),\n              max(vec2(-FXAA_SPAN_MAX, -FXAA_SPAN_MAX),\n              dir * rcpDirMin)) * inverseVP;\n      \n    vec3 rgbA = 0.5 * (\n        texture2D(tex, fragCoord * inverseVP + dir * (1.0 / 3.0 - 0.5)).xyz +\n        texture2D(tex, fragCoord * inverseVP + dir * (2.0 / 3.0 - 0.5)).xyz);\n    vec3 rgbB = rgbA * 0.5 + 0.25 * (\n        texture2D(tex, fragCoord * inverseVP + dir * -0.5).xyz +\n        texture2D(tex, fragCoord * inverseVP + dir * 0.5).xyz);\n\n    float lumaB = dot(rgbB, luma);\n    if ((lumaB < lumaMin) || (lumaB > lumaMax))\n        color = vec4(rgbA, 1.0);\n    else\n        color = vec4(rgbB, 1.0);\n    return color;\n}\n\n#endif\n\n\nvoid main(void)\n{\n    gl_FragColor = applyFXAA(vUv*resolution, texture);\n}\n",
-};
-},{}],4:[function(require,module,exports){
-
-
-module.exports = {
-    vertexShader: "varying vec2 vUv;\nvarying vec2 vCanvasUv;\nuniform vec2 resolution;\n\nvoid main() {\n  vUv = uv;  \n  vCanvasUv = uv;\n  gl_Position = projectionMatrix *\n                modelViewMatrix *\n                vec4(position,1.0);\n}\n",
-    fragmentShader: "/*\n    Cubic Lens Distortion GLSL Shader\n\n    Original Lens Distortion Algorithm from SSontech (Syntheyes)\n    http://www.ssontech.com/content/lensalg.htm\n\n    r2 = image_aspect*image_aspect*u*u + v*v\n    f = 1 + r2*(k + kcube*sqrt(r2))\n    u' = f*u\n    v' = f*v\n\n    author : Francois Tarlier\n    website : www.francois-tarlier.com/blog/index.php/2009/11/cubic-lens-distortion-shader\n        \n    modified by Martins Upitis  \n*/\n\n/*\nFilm Grain post-process shader v1.1 \nMartins Upitis (martinsh) devlog-martinsh.blogspot.com\n2013\n\n--------------------------\nThis work is licensed under a Creative Commons Attribution 3.0 Unported License.\nSo you are free to share, modify and adapt it for your needs, and even use it for commercial use.\nI would also love to hear about a project you are using it.\n\nHave fun,\nMartins\n--------------------------\n\nPerlin noise shader by toneburst:\nhttp://machinesdontcare.wordpress.com/2009/06/25/3d-perlin-noise-sphere-vertex-shader-sourcecode/\n*/\n\nuniform float timer;\n\nconst float permTexUnit = 1.0/256.0;        // Perm texture texel-size\nconst float permTexUnitHalf = 0.5/256.0;    // Half perm texture texel-size\n\nuniform float grainamount; //grain amount\nuniform bool colored; //colored noise?\nuniform float coloramount;\nuniform float grainsize; //grain particle size (1.5 - 2.5)\nuniform float lumamount; //\nuniform float filterStrength;\n\nvarying vec2 vUv;\nvarying vec2 vCanvasUv;\nuniform vec2 resolution;\nuniform sampler2D texture;\n\nuniform float k, kcube, scale, dispersion, blurAmount; //k = 0.2, kcube = 0.3, scale = 0.9, dispersion = 0.01\nuniform bool blurEnabled;\n\n#define LOOKUP_FILTER\n\nuniform sampler2D lookupTexture;\n\nconst float vignette_size = 1.1; // vignette size\nconst float tolerance = 0.7; //edge softness\n\n\nfloat width = resolution.x;\nfloat height = resolution.y;\n\nvec2 rand(vec2 co) //needed for fast noise based blurring\n{\n    float noise1 =  (fract(sin(dot(co ,vec2(12.9898,78.233))) * 43758.5453));\n    float noise2 =  (fract(sin(dot(co ,vec2(12.9898,78.233)*2.0)) * 43758.5453));\n    return clamp(vec2(noise1,noise2),0.0,1.0);\n}\n\nvec3 blur(vec2 coords)\n{\n    vec2 noise = rand(vUv.xy);\n    float tolerance = 0.2;\n    float vignette_size = 0.5;\n    vec2 powers = pow(abs(vec2(vCanvasUv.s - 0.5,vCanvasUv.t - 0.5)),vec2(2.0));\n    float radiusSqrd = pow(vignette_size,2.0);\n    float gradient = smoothstep(radiusSqrd-tolerance, radiusSqrd+tolerance, powers.x+powers.y);\n\n    vec4 col = vec4(0.0);\n\n    float X1 = coords.x + blurAmount * noise.x*0.004 * gradient;\n    float Y1 = coords.y + blurAmount * noise.y*0.004 * gradient;\n    float X2 = coords.x - blurAmount * noise.x*0.004 * gradient;\n    float Y2 = coords.y - blurAmount * noise.y*0.004 * gradient;\n    \n    float invX1 = coords.x + blurAmount * ((1.0-noise.x)*0.004) * (gradient * 0.5);\n    float invY1 = coords.y + blurAmount * ((1.0-noise.y)*0.004) * (gradient * 0.5);\n    float invX2 = coords.x - blurAmount * ((1.0-noise.x)*0.004) * (gradient * 0.5);\n    float invY2 = coords.y - blurAmount * ((1.0-noise.y)*0.004) * (gradient * 0.5);\n\n    \n    col += texture2D(texture, vec2(X1, Y1))*0.1;\n    col += texture2D(texture, vec2(X2, Y2))*0.1;\n    col += texture2D(texture, vec2(X1, Y2))*0.1;\n    col += texture2D(texture, vec2(X2, Y1))*0.1;\n    \n    col += texture2D(texture, vec2(invX1, invY1))*0.15;\n    col += texture2D(texture, vec2(invX2, invY2))*0.15;\n    col += texture2D(texture, vec2(invX1, invY2))*0.15;\n    col += texture2D(texture, vec2(invX2, invY1))*0.15;\n    \n    return col.rgb;\n}\n\n\n//a random texture generator, but you can also use a pre-computed perturbation texture\nvec4 rnm(in vec2 tc) \n{\n    float noise =  sin(dot(tc + vec2(timer,timer),vec2(12.9898,78.233))) * 43758.5453;\n\n    float noiseR =  fract(noise)*2.0-1.0;\n    float noiseG =  fract(noise*1.2154)*2.0-1.0; \n    float noiseB =  fract(noise*1.3453)*2.0-1.0;\n    float noiseA =  fract(noise*1.3647)*2.0-1.0;\n    \n    return vec4(noiseR,noiseG,noiseB,noiseA);\n}\n\nfloat fade(in float t) {\n    return t*t*t*(t*(t*6.0-15.0)+10.0);\n}\n\nfloat pnoise3D(in vec3 p)\n{\n    vec3 pi = permTexUnit*floor(p)+permTexUnitHalf; // Integer part, scaled so +1 moves permTexUnit texel\n    // and offset 1/2 texel to sample texel centers\n    vec3 pf = fract(p);     // Fractional part for interpolation\n\n    // Noise contributions from (x=0, y=0), z=0 and z=1\n    float perm00 = rnm(pi.xy).a ;\n    vec3  grad000 = rnm(vec2(perm00, pi.z)).rgb * 4.0 - 1.0;\n    float n000 = dot(grad000, pf);\n    vec3  grad001 = rnm(vec2(perm00, pi.z + permTexUnit)).rgb * 4.0 - 1.0;\n    float n001 = dot(grad001, pf - vec3(0.0, 0.0, 1.0));\n\n    // Noise contributions from (x=0, y=1), z=0 and z=1\n    float perm01 = rnm(pi.xy + vec2(0.0, permTexUnit)).a ;\n    vec3  grad010 = rnm(vec2(perm01, pi.z)).rgb * 4.0 - 1.0;\n    float n010 = dot(grad010, pf - vec3(0.0, 1.0, 0.0));\n    vec3  grad011 = rnm(vec2(perm01, pi.z + permTexUnit)).rgb * 4.0 - 1.0;\n    float n011 = dot(grad011, pf - vec3(0.0, 1.0, 1.0));\n\n    // Noise contributions from (x=1, y=0), z=0 and z=1\n    float perm10 = rnm(pi.xy + vec2(permTexUnit, 0.0)).a ;\n    vec3  grad100 = rnm(vec2(perm10, pi.z)).rgb * 4.0 - 1.0;\n    float n100 = dot(grad100, pf - vec3(1.0, 0.0, 0.0));\n    vec3  grad101 = rnm(vec2(perm10, pi.z + permTexUnit)).rgb * 4.0 - 1.0;\n    float n101 = dot(grad101, pf - vec3(1.0, 0.0, 1.0));\n\n    // Noise contributions from (x=1, y=1), z=0 and z=1\n    float perm11 = rnm(pi.xy + vec2(permTexUnit, permTexUnit)).a ;\n    vec3  grad110 = rnm(vec2(perm11, pi.z)).rgb * 4.0 - 1.0;\n    float n110 = dot(grad110, pf - vec3(1.0, 1.0, 0.0));\n    vec3  grad111 = rnm(vec2(perm11, pi.z + permTexUnit)).rgb * 4.0 - 1.0;\n    float n111 = dot(grad111, pf - vec3(1.0, 1.0, 1.0));\n\n    // Blend contributions along x\n    vec4 n_x = mix(vec4(n000, n001, n010, n011), vec4(n100, n101, n110, n111), fade(pf.x));\n\n    // Blend contributions along y\n    vec2 n_xy = mix(n_x.xy, n_x.zw, fade(pf.y));\n\n    // Blend contributions along z\n    float n_xyz = mix(n_xy.x, n_xy.y, fade(pf.z));\n\n    // We're done, return the final noise value.\n    return n_xyz;\n}\n\n//2d coordinate orientation thing\nvec2 coordRot(in vec2 tc, in float angle)\n{\n    float aspect = width/height;\n    float rotX = ((tc.x*2.0-1.0)*aspect*cos(angle)) - ((tc.y*2.0-1.0)*sin(angle));\n    float rotY = ((tc.y*2.0-1.0)*cos(angle)) + ((tc.x*2.0-1.0)*aspect*sin(angle));\n    rotX = ((rotX/aspect)*0.5+0.5);\n    rotY = rotY*0.5+0.5;\n    return vec2(rotX,rotY);\n}\n\n\n\n\n\n\n\n\nvoid main(void)\n{\n    //index of refraction of each color channel, causing chromatic dispersion\n    vec3 eta = vec3(1.0+dispersion*0.9, 1.0+dispersion*0.6, 1.0+dispersion*0.3);\n    \n    //texture coordinates\n    vec2 texcoord = vUv;\n    \n    //canvas coordinates to get the center of rendered viewport\n    //vec2 cancoord = vUv.st;\n    vec2 cancoord = vCanvasUv;\n\n    float r2 = (cancoord.x-0.5) * (cancoord.x-0.5) + (cancoord.y-0.5) * (cancoord.y-0.5);       \n\n    float f = 0.0;\n\n    //only compute the cubic distortion if necessary\n    \n    if( kcube == 0.0)\n    {\n        f = 1.0 + r2 * k;\n    }else{\n        f = 1.0 + r2 * (k + kcube * sqrt(r2));\n    }\n  \n    \n\n    // get the right pixel for the current position\n    \n    vec2 rCoords = (f*eta.r)*scale*(texcoord.xy-0.5)+0.5;\n    vec2 gCoords = (f*eta.g)*scale*(texcoord.xy-0.5)+0.5;\n    vec2 bCoords = (f*eta.b)*scale*(texcoord.xy-0.5)+0.5;\n\n    vec3 inputDistort = vec3(0.0); \n        \n\n    inputDistort.r = texture2D(texture,rCoords).r;\n    inputDistort.g = texture2D(texture,gCoords).g;\n    inputDistort.b = texture2D(texture,bCoords).b;\n    \n    if (blurEnabled)\n    {\n        inputDistort.r = blur(rCoords).r;\n        inputDistort.g = blur(gCoords).g;\n        inputDistort.b = blur(bCoords).b;\n    }\n    \n    gl_FragColor = vec4(inputDistort.r,inputDistort.g,inputDistort.b,1.0);\n\n        \n    //mix in vignette\n    float aspectratio = width/height;\n    vec2 powers = pow(abs(vec2((vUv.s - 0.5)*aspectratio,vUv.t - 0.5)),vec2(2.0));\n    float radiusSqrd = pow(vignette_size,2.0);\n    float gradient = smoothstep(radiusSqrd-tolerance, radiusSqrd+tolerance, powers.x+powers.y);\n        \n    gl_FragColor = mix(gl_FragColor, vec4(0.0), gradient);\n\n    //mix in lookup filter\n    #ifdef LOOKUP_FILTER\n        lowp vec4 textureColor = gl_FragColor;\n        // lowp vec4 textureColor = texture2D(inputImageTexture, textureCoordinate);\n     \n        mediump float blueColor = textureColor.b * 63.0;\n\n        mediump vec2 quad1;\n        quad1.y = floor(floor(blueColor) / 8.0);\n        quad1.x = floor(blueColor) - (quad1.y * 8.0);\n\n        mediump vec2 quad2;\n        quad2.y = floor(ceil(blueColor) / 8.0);\n        quad2.x = ceil(blueColor) - (quad2.y * 8.0);\n\n        highp vec2 texPos1;\n        texPos1.x = (quad1.x * 0.125) + 0.5/512.0 + ((0.125 - 1.0/512.0) * textureColor.r);\n        texPos1.y = (quad1.y * 0.125) + 0.5/512.0 + ((0.125 - 1.0/512.0) * textureColor.g);\n\n        texPos1.y = 1.0-texPos1.y;\n\n        highp vec2 texPos2;\n        texPos2.x = (quad2.x * 0.125) + 0.5/512.0 + ((0.125 - 1.0/512.0) * textureColor.r);\n        texPos2.y = (quad2.y * 0.125) + 0.5/512.0 + ((0.125 - 1.0/512.0) * textureColor.g);\n\n        texPos2.y = 1.0-texPos2.y;\n\n        lowp vec4 newColor1 = texture2D(lookupTexture, texPos1);\n        lowp vec4 newColor2 = texture2D(lookupTexture, texPos2);\n\n        lowp vec4 newColor = mix(newColor1, newColor2, fract(blueColor));\n        gl_FragColor.rgb = mix(gl_FragColor.rgb, newColor.rgb, filterStrength);\n    #endif\n\n    \n    vec2 texCoord = vUv.st;\n    \n    vec3 rotOffset = vec3(1.425,3.892,5.835); //rotation offset values  \n    vec2 rotCoordsR = coordRot(texCoord, timer + rotOffset.x);\n    vec3 noise = vec3(pnoise3D(vec3(rotCoordsR*vec2(width/grainsize,height/grainsize),0.0)));\n  \n    if (colored)\n    {\n        vec2 rotCoordsG = coordRot(texCoord, timer + rotOffset.y);\n        vec2 rotCoordsB = coordRot(texCoord, timer + rotOffset.z);\n        noise.g = mix(noise.r,pnoise3D(vec3(rotCoordsG*vec2(width/grainsize,height/grainsize),1.0)),coloramount);\n        noise.b = mix(noise.r,pnoise3D(vec3(rotCoordsB*vec2(width/grainsize,height/grainsize),2.0)),coloramount);\n    }\n\n    vec3 col = gl_FragColor.rgb;\n    // vec3 col = texture2D(texture, texCoord).rgb;\n\n    //noisiness response curve based on scene luminance\n    vec3 lumcoeff = vec3(0.299,0.587,0.114);\n    float luminance = mix(0.0,dot(col, lumcoeff),lumamount);\n    float lum = smoothstep(0.2,0.0,luminance);\n    lum += luminance;\n\n    noise = mix(noise,vec3(0.0),pow(lum,4.0));\n    col = col+noise*grainamount;\n   \n    gl_FragColor =  vec4(col,1.0);\n}",
+    vertexShader: "varying vec2 vUv;\n\nvarying vec2 v_rgbNW;\nvarying vec2 v_rgbNE;\nvarying vec2 v_rgbSW;\nvarying vec2 v_rgbSE;\nvarying vec2 v_rgbM;\n\nuniform vec2 resolution;\n\nvoid main() {\n\tvUv = uv;  \n\tvec2 inverseVP = vec2(1.0 / resolution.x, 1.0 / resolution.y);\n\tvec2 fragCoord = uv * resolution;\n\tv_rgbNW = (fragCoord + vec2(-1.0, -1.0)) * inverseVP;\n\tv_rgbNE = (fragCoord + vec2(1.0, -1.0)) * inverseVP;\n\tv_rgbSW = (fragCoord + vec2(-1.0, 1.0)) * inverseVP;\n\tv_rgbSE = (fragCoord + vec2(1.0, 1.0)) * inverseVP;\n\tv_rgbM = vec2(fragCoord * inverseVP);\n\tgl_Position = projectionMatrix *\n\t            modelViewMatrix *\n\t            vec4(position,1.0);\n}\n",
+    fragmentShader: "varying vec2 vUv;\n\nvarying mediump vec2 v_rgbNW;\nvarying mediump vec2 v_rgbNE;\nvarying mediump vec2 v_rgbSW;\nvarying mediump vec2 v_rgbSE;\nvarying mediump vec2 v_rgbM;\n\nuniform vec2 resolution;\nuniform sampler2D texture;\n\n\n/* Basic FXAA implementation based on the code on geeks3d.com with the\n   modification that the texture2DLod stuff was removed since it's\n   unsupported by WebGL. */\n\n#define FXAA_REDUCE_MIN   (1.0/ 128.0)\n#define FXAA_REDUCE_MUL   (1.0 / 8.0)\n#define FXAA_SPAN_MAX     8.0\n\n\nvoid main(void)\n{\n    mediump vec2 fragCoord = vUv*resolution; \n\n    vec4 color;\n    mediump vec2 inverseVP = vec2(1.0 / resolution.x, 1.0 / resolution.y);\n    vec3 rgbNW = texture2D(texture, v_rgbNW).xyz;\n    vec3 rgbNE = texture2D(texture, v_rgbNE).xyz;\n    vec3 rgbSW = texture2D(texture, v_rgbSW).xyz;\n    vec3 rgbSE = texture2D(texture, v_rgbSE).xyz;\n    vec3 rgbM  = texture2D(texture, v_rgbM).xyz;\n    vec3 luma = vec3(0.299, 0.587, 0.114);\n    float lumaNW = dot(rgbNW, luma);\n    float lumaNE = dot(rgbNE, luma);\n    float lumaSW = dot(rgbSW, luma);\n    float lumaSE = dot(rgbSE, luma);\n    float lumaM  = dot(rgbM,  luma);\n    float lumaMin = min(lumaM, min(min(lumaNW, lumaNE), min(lumaSW, lumaSE)));\n    float lumaMax = max(lumaM, max(max(lumaNW, lumaNE), max(lumaSW, lumaSE)));\n    \n    mediump vec2 dir;\n    dir.x = -((lumaNW + lumaNE) - (lumaSW + lumaSE));\n    dir.y =  ((lumaNW + lumaSW) - (lumaNE + lumaSE));\n    \n    float dirReduce = max((lumaNW + lumaNE + lumaSW + lumaSE) *\n                          (0.25 * FXAA_REDUCE_MUL), FXAA_REDUCE_MIN);\n    \n    float rcpDirMin = 1.0 / (min(abs(dir.x), abs(dir.y)) + dirReduce);\n    dir = min(vec2(FXAA_SPAN_MAX, FXAA_SPAN_MAX),\n              max(vec2(-FXAA_SPAN_MAX, -FXAA_SPAN_MAX),\n              dir * rcpDirMin)) * inverseVP;\n    \n    vec3 rgbA = 0.5 * (\n        texture2D(texture, fragCoord * inverseVP + dir * (1.0 / 3.0 - 0.5)).xyz +\n        texture2D(texture, fragCoord * inverseVP + dir * (2.0 / 3.0 - 0.5)).xyz);\n    vec3 rgbB = rgbA * 0.5 + 0.25 * (\n        texture2D(texture, fragCoord * inverseVP + dir * -0.5).xyz +\n        texture2D(texture, fragCoord * inverseVP + dir * 0.5).xyz);\n\n    float lumaB = dot(rgbB, luma);\n    if ((lumaB < lumaMin) || (lumaB > lumaMax))\n        color = vec4(rgbA, 1.0);\n    else\n        color = vec4(rgbB, 1.0);\n    gl_FragColor = color;\n}\n",
 };
 },{}],5:[function(require,module,exports){
+
+
+module.exports = {
+    vertexShader: "varying vec2 vUv;\nvarying vec2 vCanvasUv;\nuniform vec2 resolution;\n\nvoid main() {\n  vUv = uv;  \n  vCanvasUv = uv;\n  gl_Position = projectionMatrix *\n                modelViewMatrix *\n                vec4(position,1.0);\n}\n",
+    fragmentShader: "/*\n    Cubic Lens Distortion GLSL Shader\n\n    Original Lens Distortion Algorithm from SSontech (Syntheyes)\n    http://www.ssontech.com/content/lensalg.htm\n\n    r2 = image_aspect*image_aspect*u*u + v*v\n    f = 1 + r2*(k + kcube*sqrt(r2))\n    u' = f*u\n    v' = f*v\n\n    author : Francois Tarlier\n    website : www.francois-tarlier.com/blog/index.php/2009/11/cubic-lens-distortion-shader\n        \n    modified by Martins Upitis  \n*/\n\n/*\nFilm Grain post-process shader v1.1 \nMartins Upitis (martinsh) devlog-martinsh.blogspot.com\n2013\n\n--------------------------\nThis work is licensed under a Creative Commons Attribution 3.0 Unported License.\nSo you are free to share, modify and adapt it for your needs, and even use it for commercial use.\nI would also love to hear about a project you are using it.\n\nHave fun,\nMartins\n--------------------------\n\nPerlin noise shader by toneburst:\nhttp://machinesdontcare.wordpress.com/2009/06/25/3d-perlin-noise-sphere-vertex-shader-sourcecode/\n*/\n\nuniform float timer;\n\nconst float permTexUnit = 1.0/256.0;        // Perm texture texel-size\nconst float permTexUnitHalf = 0.5/256.0;    // Half perm texture texel-size\n\nuniform float grainamount; //grain amount\nuniform bool colored; //colored noise?\nuniform float coloramount;\nuniform float grainsize; //grain particle size (1.5 - 2.5)\nuniform float lumamount; //\nuniform float filterStrength;\n\nvarying vec2 vUv;\nvarying vec2 vCanvasUv;\nuniform vec2 resolution;\nuniform sampler2D texture;\n\nuniform float k, kcube, scale, dispersion, blurAmount; //k = 0.2, kcube = 0.3, scale = 0.9, dispersion = 0.01\nuniform bool blurEnabled;\n\n#define LOOKUP_FILTER\n\nuniform sampler2D lookupTexture;\n\nconst float vignette_size = 1.1; // vignette size\nconst float tolerance = 0.7; //edge softness\n\n\nfloat width = resolution.x;\nfloat height = resolution.y;\n\nvec2 rand(vec2 co) //needed for fast noise based blurring\n{ //TODO: use a 1D nearest-neighbour texture lookup ? \n    float noise1 =  (fract(sin(dot(co ,vec2(12.9898,78.233))) * 43758.5453));\n    float noise2 =  (fract(sin(dot(co ,vec2(12.9898,78.233)*2.0)) * 43758.5453));\n    return clamp(vec2(noise1,noise2),0.0,1.0);\n}\n\nvec3 blur(vec2 coords)\n{ \n    //TODO: the below vignette code can be pulled out of this function and reused\n    vec2 noise = rand(vUv.xy);\n    float tolerance = 0.2;\n    float vignette_size = 0.5;\n    vec2 powers = pow(abs(vec2(vCanvasUv.s - 0.5,vCanvasUv.t - 0.5)),vec2(2.0));\n    float radiusSqrd = pow(vignette_size,2.0);\n    float gradient = smoothstep(radiusSqrd-tolerance, radiusSqrd+tolerance, powers.x+powers.y);\n    \n    vec4 col = vec4(0.0);\n\n    float X1 = coords.x + blurAmount * noise.x*0.004 * gradient;\n    float Y1 = coords.y + blurAmount * noise.y*0.004 * gradient;\n    float X2 = coords.x - blurAmount * noise.x*0.004 * gradient;\n    float Y2 = coords.y - blurAmount * noise.y*0.004 * gradient;\n    \n    float invX1 = coords.x + blurAmount * ((1.0-noise.x)*0.004) * (gradient * 0.5);\n    float invY1 = coords.y + blurAmount * ((1.0-noise.y)*0.004) * (gradient * 0.5);\n    float invX2 = coords.x - blurAmount * ((1.0-noise.x)*0.004) * (gradient * 0.5);\n    float invY2 = coords.y - blurAmount * ((1.0-noise.y)*0.004) * (gradient * 0.5);\n\n    //TODO: optimize the blur --> dependent texture reads and texel centers...\n    col += texture2D(texture, vec2(X1, Y1))*0.1;\n    col += texture2D(texture, vec2(X2, Y2))*0.1;\n    col += texture2D(texture, vec2(X1, Y2))*0.1;\n    col += texture2D(texture, vec2(X2, Y1))*0.1;\n    \n    col += texture2D(texture, vec2(invX1, invY1))*0.15;\n    col += texture2D(texture, vec2(invX2, invY2))*0.15;\n    col += texture2D(texture, vec2(invX1, invY2))*0.15;\n    col += texture2D(texture, vec2(invX2, invY1))*0.15;\n    \n    return col.rgb;\n}\n\n\n//a random texture generator, but you can also use a pre-computed perturbation texture\nvec4 rnm(in vec2 tc) \n{\n    float noise =  sin(dot(tc + vec2(timer,timer),vec2(12.9898,78.233))) * 43758.5453;\n\n    float noiseR =  fract(noise)*2.0-1.0;\n    float noiseG =  fract(noise*1.2154)*2.0-1.0; \n    float noiseB =  fract(noise*1.3453)*2.0-1.0;\n    float noiseA =  fract(noise*1.3647)*2.0-1.0;\n    \n    return vec4(noiseR,noiseG,noiseB,noiseA);\n}\n\nfloat fade(in float t) {\n    return t*t*t*(t*(t*6.0-15.0)+10.0);\n}\n\nfloat pnoise3D(in vec3 p)\n{\n    vec3 pi = permTexUnit*floor(p)+permTexUnitHalf; // Integer part, scaled so +1 moves permTexUnit texel\n    // and offset 1/2 texel to sample texel centers\n    vec3 pf = fract(p);     // Fractional part for interpolation\n\n    // Noise contributions from (x=0, y=0), z=0 and z=1\n    float perm00 = rnm(pi.xy).a ;\n    vec3  grad000 = rnm(vec2(perm00, pi.z)).rgb * 4.0 - 1.0;\n    float n000 = dot(grad000, pf);\n    vec3  grad001 = rnm(vec2(perm00, pi.z + permTexUnit)).rgb * 4.0 - 1.0;\n    float n001 = dot(grad001, pf - vec3(0.0, 0.0, 1.0));\n\n    // Noise contributions from (x=0, y=1), z=0 and z=1\n    float perm01 = rnm(pi.xy + vec2(0.0, permTexUnit)).a ;\n    vec3  grad010 = rnm(vec2(perm01, pi.z)).rgb * 4.0 - 1.0;\n    float n010 = dot(grad010, pf - vec3(0.0, 1.0, 0.0));\n    vec3  grad011 = rnm(vec2(perm01, pi.z + permTexUnit)).rgb * 4.0 - 1.0;\n    float n011 = dot(grad011, pf - vec3(0.0, 1.0, 1.0));\n\n    // Noise contributions from (x=1, y=0), z=0 and z=1\n    float perm10 = rnm(pi.xy + vec2(permTexUnit, 0.0)).a ;\n    vec3  grad100 = rnm(vec2(perm10, pi.z)).rgb * 4.0 - 1.0;\n    float n100 = dot(grad100, pf - vec3(1.0, 0.0, 0.0));\n    vec3  grad101 = rnm(vec2(perm10, pi.z + permTexUnit)).rgb * 4.0 - 1.0;\n    float n101 = dot(grad101, pf - vec3(1.0, 0.0, 1.0));\n\n    // Noise contributions from (x=1, y=1), z=0 and z=1\n    float perm11 = rnm(pi.xy + vec2(permTexUnit, permTexUnit)).a ;\n    vec3  grad110 = rnm(vec2(perm11, pi.z)).rgb * 4.0 - 1.0;\n    float n110 = dot(grad110, pf - vec3(1.0, 1.0, 0.0));\n    vec3  grad111 = rnm(vec2(perm11, pi.z + permTexUnit)).rgb * 4.0 - 1.0;\n    float n111 = dot(grad111, pf - vec3(1.0, 1.0, 1.0));\n\n    // Blend contributions along x\n    vec4 n_x = mix(vec4(n000, n001, n010, n011), vec4(n100, n101, n110, n111), fade(pf.x));\n\n    // Blend contributions along y\n    vec2 n_xy = mix(n_x.xy, n_x.zw, fade(pf.y));\n\n    // Blend contributions along z\n    float n_xyz = mix(n_xy.x, n_xy.y, fade(pf.z));\n\n    // We're done, return the final noise value.\n    return n_xyz;\n}\n\n//2d coordinate orientation thing\nvec2 coordRot(in vec2 tc, in float angle)\n{\n    float aspect = width/height;\n    float rotX = ((tc.x*2.0-1.0)*aspect*cos(angle)) - ((tc.y*2.0-1.0)*sin(angle));\n    float rotY = ((tc.y*2.0-1.0)*cos(angle)) + ((tc.x*2.0-1.0)*aspect*sin(angle));\n    rotX = ((rotX/aspect)*0.5+0.5);\n    rotY = rotY*0.5+0.5;\n    return vec2(rotX,rotY);\n}\n\n\n\n\n\n\n\n\nvoid main(void)\n{\n    //index of refraction of each color channel, causing chromatic dispersion\n    vec3 eta = vec3(1.0+dispersion*0.9, 1.0+dispersion*0.6, 1.0+dispersion*0.3);\n    \n    //texture coordinates\n    vec2 texcoord = vUv;\n    \n    //canvas coordinates to get the center of rendered viewport\n    //vec2 cancoord = vUv.st;\n    vec2 cancoord = vCanvasUv;\n\n    float r2 = (cancoord.x-0.5) * (cancoord.x-0.5) + (cancoord.y-0.5) * (cancoord.y-0.5);       \n\n    float f = 0.0;\n\n    //only compute the cubic distortion if necessary\n    \n    if( kcube == 0.0)\n    {\n        f = 1.0 + r2 * k;\n    }else{\n        f = 1.0 + r2 * (k + kcube * sqrt(r2));\n    }\n  \n    \n\n    // get the right pixel for the current position\n    \n    vec2 rCoords = (f*eta.r)*scale*(texcoord.xy-0.5)+0.5;\n    vec2 gCoords = (f*eta.g)*scale*(texcoord.xy-0.5)+0.5;\n    vec2 bCoords = (f*eta.b)*scale*(texcoord.xy-0.5)+0.5;\n\n    vec3 inputDistort = vec3(0.0); \n        \n\n    inputDistort.r = texture2D(texture,rCoords).r;\n    inputDistort.g = texture2D(texture,gCoords).g;\n    inputDistort.b = texture2D(texture,bCoords).b;\n    \n    if (blurEnabled)\n    {\n        inputDistort.r = blur(rCoords).r;\n        inputDistort.g = blur(gCoords).g;\n        inputDistort.b = blur(bCoords).b;\n    }\n    \n    gl_FragColor = vec4(inputDistort.r,inputDistort.g,inputDistort.b,1.0);\n\n        \n    //mix in vignette\n    float aspectratio = width/height;\n    vec2 powers = pow(abs(vec2((vUv.s - 0.5)*aspectratio,vUv.t - 0.5)),vec2(2.0));\n    float radiusSqrd = pow(vignette_size,2.0);\n    float gradient = smoothstep(radiusSqrd-tolerance, radiusSqrd+tolerance, powers.x+powers.y);\n        \n    gl_FragColor = mix(gl_FragColor, vec4(0.0), gradient);\n\n    //mix in lookup filter\n    #ifdef LOOKUP_FILTER\n        lowp vec4 textureColor = gl_FragColor;\n        // lowp vec4 textureColor = texture2D(inputImageTexture, textureCoordinate);\n     \n        mediump float blueColor = textureColor.b * 63.0;\n\n        mediump vec2 quad1;\n        quad1.y = floor(floor(blueColor) / 8.0);\n        quad1.x = floor(blueColor) - (quad1.y * 8.0);\n\n        mediump vec2 quad2;\n        quad2.y = floor(ceil(blueColor) / 8.0);\n        quad2.x = ceil(blueColor) - (quad2.y * 8.0);\n\n        highp vec2 texPos1;\n        texPos1.x = (quad1.x * 0.125) + 0.5/512.0 + ((0.125 - 1.0/512.0) * textureColor.r);\n        texPos1.y = (quad1.y * 0.125) + 0.5/512.0 + ((0.125 - 1.0/512.0) * textureColor.g);\n\n        texPos1.y = 1.0-texPos1.y;\n\n        highp vec2 texPos2;\n        texPos2.x = (quad2.x * 0.125) + 0.5/512.0 + ((0.125 - 1.0/512.0) * textureColor.r);\n        texPos2.y = (quad2.y * 0.125) + 0.5/512.0 + ((0.125 - 1.0/512.0) * textureColor.g);\n\n        texPos2.y = 1.0-texPos2.y;\n\n        lowp vec4 newColor1 = texture2D(lookupTexture, texPos1);\n        lowp vec4 newColor2 = texture2D(lookupTexture, texPos2);\n\n        lowp vec4 newColor = mix(newColor1, newColor2, fract(blueColor));\n        gl_FragColor.rgb = mix(gl_FragColor.rgb, newColor.rgb, filterStrength);\n    #endif\n\n    \n    vec2 texCoord = vUv.st;\n    \n    vec3 rotOffset = vec3(1.425,3.892,5.835); //rotation offset values  \n    vec2 rotCoordsR = coordRot(texCoord, timer + rotOffset.x);\n    vec3 noise = vec3(pnoise3D(vec3(rotCoordsR*vec2(width/grainsize,height/grainsize),0.0)));\n  \n    if (colored)\n    {\n        vec2 rotCoordsG = coordRot(texCoord, timer + rotOffset.y);\n        vec2 rotCoordsB = coordRot(texCoord, timer + rotOffset.z);\n        noise.g = mix(noise.r,pnoise3D(vec3(rotCoordsG*vec2(width/grainsize,height/grainsize),1.0)),coloramount);\n        noise.b = mix(noise.r,pnoise3D(vec3(rotCoordsB*vec2(width/grainsize,height/grainsize),2.0)),coloramount);\n    }\n\n    vec3 col = gl_FragColor.rgb;\n    // vec3 col = texture2D(texture, texCoord).rgb;\n\n    //noisiness response curve based on scene luminance\n    vec3 lumcoeff = vec3(0.299,0.587,0.114);\n    float luminance = mix(0.0,dot(col, lumcoeff),lumamount);\n    float lum = smoothstep(0.2,0.0,luminance);\n    lum += luminance;\n\n    noise = mix(noise,vec3(0.0),pow(lum,4.0));\n    col = col+noise*grainamount;\n   \n    gl_FragColor =  vec4(col,1.0);\n}",
+};
+},{}],6:[function(require,module,exports){
 /*!
   * domready (c) Dustin Diaz 2014 - License MIT
   */
@@ -38835,7 +39000,7 @@ module.exports = {
 
 });
 
-},{}],6:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
 /*
  * raf.js
  * https://github.com/ngryman/raf.js
@@ -38878,4 +39043,4 @@ module.exports = {
 	window.cancelAnimationFrame = cancelAnimationFrame;
 }(window));
 
-},{}]},{},[2])
+},{}]},{},[3])

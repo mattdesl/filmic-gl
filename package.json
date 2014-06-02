@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "browserify demos/main.js -o demos/js/main.js"
+    "build": "browserify demos/main.js -o demos/js/main.js",
+    "watch": "watchify demos/main.js -o demos/js/main.js --debug --verbose"
   },
   "author": "",
   "license": "MIT",
@@ -16,10 +17,12 @@
     ]
   },
   "browserify-shim": {
-    "three": "THREE"
+    "three": "THREE",
+    "stats": "Stats"
   },
   "browser": {
-    "three": "./bower_components/threejs/build/three.js"
+    "three": "./bower_components/threejs/build/three.js",
+    "stats": "./bower_components/stats.js/src/Stats.js"
   },
   "devDependencies": {
     "browserify": "~4.1.6",

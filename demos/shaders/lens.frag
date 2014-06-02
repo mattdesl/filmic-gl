@@ -65,21 +65,22 @@ float width = resolution.x;
 float height = resolution.y;
 
 vec2 rand(vec2 co) //needed for fast noise based blurring
-{
+{ //TODO: use a 1D nearest-neighbour texture lookup ? 
     float noise1 =  (fract(sin(dot(co ,vec2(12.9898,78.233))) * 43758.5453));
     float noise2 =  (fract(sin(dot(co ,vec2(12.9898,78.233)*2.0)) * 43758.5453));
     return clamp(vec2(noise1,noise2),0.0,1.0);
 }
 
 vec3 blur(vec2 coords)
-{
+{ 
+    //TODO: the below vignette code can be pulled out of this function and reused
     vec2 noise = rand(vUv.xy);
     float tolerance = 0.2;
     float vignette_size = 0.5;
     vec2 powers = pow(abs(vec2(vCanvasUv.s - 0.5,vCanvasUv.t - 0.5)),vec2(2.0));
     float radiusSqrd = pow(vignette_size,2.0);
     float gradient = smoothstep(radiusSqrd-tolerance, radiusSqrd+tolerance, powers.x+powers.y);
-
+    
     vec4 col = vec4(0.0);
 
     float X1 = coords.x + blurAmount * noise.x*0.004 * gradient;
@@ -92,7 +93,7 @@ vec3 blur(vec2 coords)
     float invX2 = coords.x - blurAmount * ((1.0-noise.x)*0.004) * (gradient * 0.5);
     float invY2 = coords.y - blurAmount * ((1.0-noise.y)*0.004) * (gradient * 0.5);
 
-    
+    //TODO: optimize the blur --> dependent texture reads and texel centers...
     col += texture2D(texture, vec2(X1, Y1))*0.1;
     col += texture2D(texture, vec2(X2, Y2))*0.1;
     col += texture2D(texture, vec2(X1, Y2))*0.1;

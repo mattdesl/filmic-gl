@@ -1,5 +1,7 @@
 var domready = require('domready');
 var THREE = require('three');
+var Stats = require('stats');
+
 require('raf.js');
 
 var lensShader = require('./shaders/lens');
@@ -220,6 +222,15 @@ domready(function() {
     renderer.gammaInput = true;
     renderer.gammaOutput = true;
 
+    var stats = new Stats();
+    stats.setMode(0); // 0: fps, 1: ms
+
+    // Align top-left
+    stats.domElement.style.position = 'absolute';
+    stats.domElement.style.left = (10+width-80)+'px';
+    stats.domElement.style.top = '10px';
+    document.body.appendChild(stats.domElement);
+
     var post = setupPostProcessing(renderer, width, height);
 
     var useFXAA = true,
@@ -240,10 +251,10 @@ domready(function() {
         } else if (chr === 'f') {
             useFXAA = !useFXAA;
         } 
-        // else if (chr === 'n') {
-        //     //bit flip 0 to 1 and vice versa
-        //     post.postMaterial.uniforms.colored.value ^= 1; 
-        // }
+        else if (chr === 'n') {
+            //bit flip 0 to 1 and vice versa
+            post.postMaterial.uniforms.colored.value ^= 1; 
+        }
 
         updateLabels();
     });
@@ -258,6 +269,7 @@ domready(function() {
 
     function render() {
         requestAnimationFrame(render);
+        stats.begin();
 
         var time = clock.getElapsedTime();
 
@@ -288,5 +300,6 @@ domready(function() {
             renderer.render(scene, camera);
         }
             
+        stats.end();
     }
 });
