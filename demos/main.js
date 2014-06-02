@@ -34,7 +34,7 @@ function addLights(scene) {
     dir.shadowCameraTop = far;
     dir.shadowCameraBottom = -far;
     dir.shadowCameraFov = 50;
-    dir.shadowDarkness = 0.3;
+    dir.shadowDarkness = 0.5;
 
 
     scene.add(dir);
@@ -217,6 +217,8 @@ domready(function() {
     renderer.setSize(width, height);
     renderer.shadowMapEnabled = true;
     renderer.shadowMapType = THREE.PCFSoftShadowMap;
+    renderer.gammaInput = true;
+    renderer.gammaOutput = true;
 
     var post = setupPostProcessing(renderer, width, height);
 
@@ -224,6 +226,7 @@ domready(function() {
         usePost = true;
 
     function updateLabels() {
+        document.querySelector('.post').style.display = usePost ? 'block' : 'none';
         document.querySelector('.fxaa-on').style.display = !useFXAA ? 'block' : 'none';
         document.querySelector('.fxaa-off').style.display = useFXAA ? 'block' : 'none';
     }

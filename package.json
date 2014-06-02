@@ -4,7 +4,8 @@
   "description": "filmic webGL post-processing",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "cp demos/index.html release/ && browserify demos/main.js -o release/main.js"
   },
   "author": "",
   "license": "MIT",

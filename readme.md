@@ -12,6 +12,7 @@ You can run the demo with beefy, like so:
 ```
 #install dependencies
 npm install
+bower install
 
 #install beefy and browserify
 npm install beefy browserify -g
@@ -21,3 +22,6 @@ beefy main.js --cwd demos
 ```
 
 ## building
+
+```npm run build```
+
