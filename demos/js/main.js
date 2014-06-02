@@ -38808,7 +38808,7 @@ function setupPostProcessing(renderer, width, height) {
             blurEnabled: {type:'i', value: 1},
 
             //film grain..
-            grainamount: {type: 'f', value: 0.02},
+            grainamount: {type: 'f', value: 0.03},
             colored: {type: 'i', value: 0},
             coloramount: {type: 'f', value:1},
             grainsize: {type:'f', value:1.5},
