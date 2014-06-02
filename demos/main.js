@@ -251,10 +251,11 @@ domready(function() {
         } else if (chr === 'f') {
             useFXAA = !useFXAA;
         } 
-        else if (chr === 'n') {
-            //bit flip 0 to 1 and vice versa
-            post.postMaterial.uniforms.colored.value ^= 1; 
-        }
+        //Disabled for now..
+        // else if (chr === 'n') {
+        //     //bit flip 0 to 1 and vice versa
+        //     post.postMaterial.uniforms.colored.value ^= 1; 
+        // }
 
         updateLabels();
     });
