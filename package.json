@@ -1,0 +1,32 @@
+{
+  "name": "filmic-gl",
+  "version": "0.0.0",
+  "description": "filmic webGL post-processing",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "MIT",
+  "browserify": {
+    "transform": [
+      "brfs",
+      "browserify-shim"
+    ]
+  },
+  "browserify-shim": {
+    "three": "THREE"
+  },
+  "browser": {
+    "three": "./bower_components/threejs/build/three.js"
+  },
+  "devDependencies": {
+    "browserify": "~4.1.6",
+    "browserify-shim": "~3.5.0",
+    "brfs": "~1.1.1"
+  },
+  "dependencies": {
+    "raf.js": "0.0.4",
+    "domready": "~1.0.5"
+  }
+}
