@@ -1,11 +1,11 @@
 var domready = require('domready');
 var THREE = require('three');
 var Stats = require('stats');
-
 require('raf.js');
 
 var lensShader = require('./shaders/lens');
 var fxaaShader = require('./shaders/fxaa');
+var grainShader = require('./shaders/grain');
 
 function addLights(scene) {
     var light = new THREE.AmbientLight(0x14031b);
@@ -136,7 +136,7 @@ function setupPostProcessing(renderer, width, height) {
         fragmentShader: fxaaShader.fragmentShader
     });
 
-    var lookupTexture = THREE.ImageUtils.loadTexture("img/lookup_miss_etikate.png");
+    var lookupTexture = THREE.ImageUtils.loadTexture("img/lookup_film.png");
     lookupTexture.genMipmaps = false;
     lookupTexture.minFilter = THREE.LinearFilter;
     lookupTexture.magFilter = THREE.LinearFilter;
@@ -157,13 +157,17 @@ function setupPostProcessing(renderer, width, height) {
             //film grain..
             grainamount: {type: 'f', value: 0.03},
             colored: {type: 'i', value: 0},
-            coloramount: {type: 'f', value:1},
-            grainsize: {type:'f', value:1.5},
+            coloramount: {type: 'f', value:0.6},
+            grainsize: {type:'f', value:1.9},
             lumamount: {type: 'f', value:1.0},
             timer: {type: 'f', value: 0.0},
 
+            //film dust, scratches, burn
+            scratches: {type: 'f', value: 0.1},
+            burn: {type: 'f', value: 0.3},
+
             //filter
-            filterStrength: {type: 'f', value: 0.5},
+            filterStrength: {type: 'f', value: 1},
 
             //the scene texture...
             texture: {type:'t', value: renderTarget2},
@@ -265,7 +269,6 @@ domready(function() {
 
     var clock = new THREE.Clock();
 
-
     requestAnimationFrame(render);
 
     function render() {
@@ -274,7 +277,7 @@ domready(function() {
 
         var time = clock.getElapsedTime();
 
-        post.postMaterial.uniforms.timer.value = time/1000;
+        post.postMaterial.uniforms.timer.value = time;
 
         //orbit camera
         var radius = 50;
@@ -283,9 +286,11 @@ domready(function() {
         camera.position.z = Math.sin(time*0.4) * radius;
         camera.position.y = Math.sin(time*0.25) * 1 + 25;
         camera.lookAt(new THREE.Vector3(0,0,0));
-
+        
         if (usePost) {
-            //render scene to first target
+            
+
+            //render scene to first target if FXAA is enabled
             renderer.render(scene, camera, useFXAA ? post.target : post.target2);
 
             if (useFXAA) {

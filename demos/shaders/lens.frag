@@ -52,6 +52,8 @@ uniform sampler2D texture;
 
 uniform float k, kcube, scale, dispersion, blurAmount; //k = 0.2, kcube = 0.3, scale = 0.9, dispersion = 0.01
 uniform bool blurEnabled;
+uniform float scratches;
+uniform float burn;
 
 #define LOOKUP_FILTER
 
@@ -70,6 +72,17 @@ vec2 rand(vec2 co) //needed for fast noise based blurring
     float noise2 =  (fract(sin(dot(co ,vec2(12.9898,78.233)*2.0)) * 43758.5453));
     return clamp(vec2(noise1,noise2),0.0,1.0);
 }
+
+highp float hash(vec2 co)
+{
+    highp float a = 12.9898;
+    highp float b = 78.233;
+    highp float c = 43758.5453;
+    highp float dt= dot(co.xy ,vec2(a,b));
+    highp float sn= mod(dt,3.14);
+    return fract(sin(sn) * c);
+}
+
 
 vec3 blur(vec2 coords)
 { 
@@ -185,6 +198,15 @@ vec2 coordRot(in vec2 tc, in float angle)
 
 
 
+//good for large clumps of smooth looking noise, but too repetitive
+//for small grains
+float fastNoise(vec2 n) {
+    const vec2 d = vec2(0.0, 1.0);
+    vec2 b = floor(n), f = smoothstep(vec2(0.0), vec2(1.0), fract(n));
+    return mix(mix(hash(b), hash(b + d.yx ), f.x), mix(hash(b + d.xy ), hash(b + d.yy ), f.x), f.y);
+}
+
+
 
 
 
@@ -248,9 +270,57 @@ void main(void)
         
     gl_FragColor = mix(gl_FragColor, vec4(0.0), gradient);
 
+
+    
+    vec2 texCoord = vUv.st;
+    
+    vec3 rotOffset = vec3(1.425,3.892,5.835); //rotation offset values  
+    vec2 rotCoordsR = coordRot(texCoord, timer + rotOffset.x);
+    vec3 noise = vec3(pnoise3D(vec3(rotCoordsR*vec2(width/grainsize,height/grainsize),0.0)));
+    
+
+    if (colored)
+    {
+        vec2 rotCoordsG = coordRot(texCoord, timer + rotOffset.y);
+        vec2 rotCoordsB = coordRot(texCoord, timer + rotOffset.z);
+        noise.g = mix(noise.r,pnoise3D(vec3(rotCoordsG*vec2(width/grainsize,height/grainsize),1.0)),coloramount);
+        noise.b = mix(noise.r,pnoise3D(vec3(rotCoordsB*vec2(width/grainsize,height/grainsize),2.0)),coloramount);
+    }
+
+    // noise = vec3( fastNoise(texCoord*sin(timer*0.1)*3.0 + fastNoise(timer*0.4+texCoord*2.0)) )*burn;
+    noise += vec3( smoothstep(0.0, 0.6, fastNoise(texCoord*sin(timer*0.1)*5.0 + fastNoise(timer*0.4+texCoord*2.0))) )*burn;
+
+    vec3 col = gl_FragColor.rgb;
+    // vec3 col = texture2D(texture, texCoord).rgb;
+
+    //noisiness response curve based on scene luminance
+    vec3 lumcoeff = vec3(0.299,0.587,0.114);
+    float luminance = mix(0.0,dot(col, lumcoeff),lumamount);
+    float lum = smoothstep(0.2,0.0,luminance);
+    lum += luminance;
+
+    noise = mix(noise,vec3(0.0),pow(lum,4.0));
+    col = col+noise*grainamount;
+
+    if (scratches > 0.0001) {
+
+        //large occasional burns
+        float specs = fastNoise(texCoord*(10.0+sin(timer)*5.0) + fastNoise(timer+texCoord*50.0) );
+        col -= vec3( smoothstep(0.955, 0.96, specs*sin(timer*4.0)  ) )*scratches*0.5; //0.05   
+        specs = fastNoise(texCoord*1.0*(10.0+sin(timer)*5.0) - fastNoise(timer+texCoord*40.0) );
+        col -= (1.-vec3( smoothstep(0.99, 0.96, (specs)*(sin(cos(timer)*4.0)/2.+0.5)) ))*scratches*0.7; //0.07
+        
+        // // //this is really crappy and should be revisited...
+        col -= clamp( scratches*vec3( smoothstep(0.000001, 0.0000, hash(texCoord.xx*timer) ) * (abs(cos(timer)*sin(timer*1.5))-0.5) ), 0.0, 1.0 );
+    }
+
+
+
+    gl_FragColor =  vec4(col,1.0);
+
     //mix in lookup filter
     #ifdef LOOKUP_FILTER
-        lowp vec4 textureColor = gl_FragColor;
+        lowp vec4 textureColor = clamp(gl_FragColor,0.0, 1.0);
         // lowp vec4 textureColor = texture2D(inputImageTexture, textureCoordinate);
      
         mediump float blueColor = textureColor.b * 63.0;
@@ -281,33 +351,4 @@ void main(void)
         lowp vec4 newColor = mix(newColor1, newColor2, fract(blueColor));
         gl_FragColor.rgb = mix(gl_FragColor.rgb, newColor.rgb, filterStrength);
     #endif
-
-    
-    vec2 texCoord = vUv.st;
-    
-    vec3 rotOffset = vec3(1.425,3.892,5.835); //rotation offset values  
-    vec2 rotCoordsR = coordRot(texCoord, timer + rotOffset.x);
-    vec3 noise = vec3(pnoise3D(vec3(rotCoordsR*vec2(width/grainsize,height/grainsize),0.0)));
-  
-    if (colored)
-    {
-        vec2 rotCoordsG = coordRot(texCoord, timer + rotOffset.y);
-        vec2 rotCoordsB = coordRot(texCoord, timer + rotOffset.z);
-        noise.g = mix(noise.r,pnoise3D(vec3(rotCoordsG*vec2(width/grainsize,height/grainsize),1.0)),coloramount);
-        noise.b = mix(noise.r,pnoise3D(vec3(rotCoordsB*vec2(width/grainsize,height/grainsize),2.0)),coloramount);
-    }
-
-    vec3 col = gl_FragColor.rgb;
-    // vec3 col = texture2D(texture, texCoord).rgb;
-
-    //noisiness response curve based on scene luminance
-    vec3 lumcoeff = vec3(0.299,0.587,0.114);
-    float luminance = mix(0.0,dot(col, lumcoeff),lumamount);
-    float lum = smoothstep(0.2,0.0,luminance);
-    lum += luminance;
-
-    noise = mix(noise,vec3(0.0),pow(lum,4.0));
-    col = col+noise*grainamount;
-   
-    gl_FragColor =  vec4(col,1.0);
 }

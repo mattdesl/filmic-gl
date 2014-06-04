@@ -1,6 +1,5 @@
 varying vec2 vUv;
 varying vec2 vCanvasUv;
-uniform vec2 resolution;
 
 void main() {
   vUv = uv;  

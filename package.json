@@ -17,11 +17,10 @@
     ]
   },
   "browserify-shim": {
-    "three": "THREE",
+    "three": "global:THREE",
     "stats": "Stats"
   },
   "browser": {
-    "three": "./bower_components/threejs/build/three.js",
     "stats": "./bower_components/stats.js/src/Stats.js"
   },
   "devDependencies": {
