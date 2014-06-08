@@ -13,7 +13,8 @@
   "browserify": {
     "transform": [
       "brfs",
-      "browserify-shim"
+      "browserify-shim",
+      "glslify"
     ]
   },
   "browserify-shim": {
@@ -26,7 +27,8 @@
   "devDependencies": {
     "browserify": "~4.1.6",
     "browserify-shim": "~3.5.0",
-    "brfs": "~1.1.1"
+    "brfs": "~1.1.1",
+    "glslify": "~1.4.0"
   },
   "dependencies": {
     "raf.js": "0.0.4",

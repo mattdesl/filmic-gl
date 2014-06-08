@@ -6,6 +6,7 @@ require('raf.js');
 var lensShader = require('./shaders/lens');
 var fxaaShader = require('./shaders/fxaa');
 var grainShader = require('./shaders/grain');
+console.log(lensShader);
 
 function addLights(scene) {
     var light = new THREE.AmbientLight(0x14031b);
@@ -132,8 +133,8 @@ function setupPostProcessing(renderer, width, height) {
             texture: {type:'t', value: renderTarget},
             resolution: {type:'v2', value: new THREE.Vector2(width, height)}
         },
-        vertexShader: fxaaShader.vertexShader,
-        fragmentShader: fxaaShader.fragmentShader
+        vertexShader: fxaaShader.vertex,
+        fragmentShader: fxaaShader.fragment
     });
 
     var lookupTexture = THREE.ImageUtils.loadTexture("img/lookup_film.png");
@@ -175,8 +176,8 @@ function setupPostProcessing(renderer, width, height) {
             //the filter lookup texture
             lookupTexture: {type: 't', value: lookupTexture },
         },
-        vertexShader: lensShader.vertexShader,
-        fragmentShader: lensShader.fragmentShader
+        vertexShader: lensShader.vertex,
+        fragmentShader: lensShader.fragment
     });
     
     postQuad = new THREE.Mesh(new THREE.PlaneGeometry( 2, 2 ), postMaterial);

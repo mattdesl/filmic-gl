@@ -1,6 +1,8 @@
 var fs = require('fs');
-
-module.exports = {
-    vertexShader: fs.readFileSync(__dirname+'/pass.vert', 'utf8'),
-    fragmentShader: fs.readFileSync(__dirname+'/lens.frag', 'utf8'),
-};
+var glslify = require('glslify');
+module.exports = glslify({
+    inline: true,
+    sourceOnly: true,
+    vertex: fs.readFileSync(__dirname+'/pass.vert', 'utf8'),
+    fragment: fs.readFileSync(__dirname+'/lens.frag', 'utf8'),
+});
